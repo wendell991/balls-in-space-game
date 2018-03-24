@@ -1,0 +1,560 @@
+<!DOCTYPE html> 
+<html> 
+<head> 
+    <title>Balls in Space</title> 
+    <style> 
+        html, body 
+        { 
+            width: 100%; 
+            margin: 0px; 
+        } 
+        
+        .bodyClass 
+        { 
+            background-color: Black; 
+            text-align: center; 
+        } 
+        
+        .canvasClass 
+        { 
+            position: absolute; 
+            left: 15%; 
+            top: 20%; 
+            width: 1280px; 
+            height: 500px; 
+            /*margin-left: -640px;  half of width */ 
+            background-color: Black; 
+        } 
+    </style> 
+    <script>
+
+
+    var x = 25; 
+    var y = 25; 
+    var FPS = 30; 
+	var maxfire=3;
+	var maxenemy=20;
+	var fire= new Array();
+	var evil= new Array();
+	var destroyed= new Array();
+    var canvasName = "myCanvas"; 
+    var speed = 3; 
+    var context; 
+    var downPress = false; 
+    var upPress = false; 
+    var leftPress = false; 
+    var rightPress = false; 
+    var deltaTime = 10; 
+    var width = 0; 
+    var height = 0; 
+	var spaceimage=1;
+	var imgdelay=1;
+	var updateid=0;
+	var spwne=0;
+	var playerdead=false;
+	var playerddelay=1;
+	var playerdimg=1;
+	var lineload=0;
+	var gomenu=setTimeout(menu,2000);
+	var backgroundid=0;
+	var score=0;
+	window.onload=start_loading;
+	
+	function start_loading(){
+		var elem = document.getElementById(canvasName); 
+            if (elem && elem.getContext) { 
+                    context = elem.getContext("2d"); 
+        }
+		width = parseInt(document.getElementById(canvasName).attributes["width"].value, 0); 
+        height = parseInt(document.getElementById(canvasName).attributes["height"].value, 0); 
+		
+
+        InitStars();
+		backgroundid=setInterval(background_stars, 10);
+	}
+	function menu(){
+		document.getElementById("menu").style.display="block";
+	}
+	function restart(){
+		lineload=0;
+		document.getElementById("menu").style.display="none";
+		clearInterval(backgroundid);
+		start_loading();
+		gomenu=setTimeout(menu,2000);
+	}
+	function background_stars(){
+		if(x<0) x = 0; 
+        if(x>width) x = width;
+
+        if(y<0) y = 0; 
+        if(y>height) y = height; 
+		updateStars(); 
+		context.fillStyle = '#000'; // Black 
+        context.clearRect(0,0,width,height);
+		if(context){
+			drawStars(context);
+			if(lineload<200){
+				context.font = "20px Comic Sans MS";
+				context.fillStyle = "green";
+				context.textAlign = "center";
+				context.fillText("Initializing", (width/2) - 50, height/2);
+				lineload+=1;
+				context.beginPath();
+				context.moveTo((width/2) - 200,(height/2) + 10);
+				context.lineTo(((width/2) - 100)+lineload,(height/2) + 10);
+				context.strokeStyle="red";
+				context.stroke();
+			}
+		}
+	}
+	function return_start(){
+		clearInterval(updateid);
+		clearInterval(spwne);
+		start_loading();
+		document.getElementById("leave").style.display="none";
+		menu();
+	}
+	function initialize_variables(){
+		x = 25; 
+		y = 25; 
+		FPS = 30; 
+		maxfire=3;
+		maxenemy=20;
+		fire= new Array();
+		evil= new Array();
+		destroyed= new Array();
+		canvasName = "myCanvas"; 
+		speed = 3; 
+		context; 
+		downPress = false; 
+		upPress = false; 
+		leftPress = false; 
+		rightPress = false; 
+		deltaTime = 0; 
+		width = 0; 
+		height = 0; 
+		spaceimage=1;
+		imgdelay=1;
+		updateid=0;
+		spwne=0;
+		playerdead=false;
+		playerddelay=1;
+		playerdimg=1;
+		score=0;
+	}
+	function start(){
+		//document.getElementById("startimg").style.display="none";
+		document.getElementById("leave").style.display="block";
+		document.getElementById("menu").style.display="none";
+		clearInterval(backgroundid);
+		initialize_variables();
+		init();
+	}
+    function init(){ 
+        var elem = document.getElementById(canvasName); 
+            if (elem && elem.getContext) { 
+                    context = elem.getContext("2d"); 
+        }
+
+        document.onkeydown = keyDownEvent; 
+        document.onkeyup = keyUpEvent;
+
+        width = parseInt(document.getElementById(canvasName).attributes["width"].value, 0); 
+        height = parseInt(document.getElementById(canvasName).attributes["height"].value, 0); 
+   
+
+        InitStars();
+
+        deltaTime = 10; 
+        updateid=setInterval(update, deltaTime);    
+		spwne=setInterval(spawnEvil,2000);
+    }   
+
+
+    function update(){ 
+        // Handle input 
+               
+
+        if(downPress) y += speed; 
+        if(upPress) y-= speed; 
+        if(leftPress) x-=speed; 
+        if(rightPress) x+=speed;
+
+        if(x<0) x = 0; 
+        if(x>width) x = width;
+
+        if(y<0) y = 0; 
+        if(y>height) y = height; 
+        // Update AI 
+        // Handle Physics 
+        // Update Objects 
+        // Draw
+        updateStars(); 
+		document.getElementById("score").innerText="Score:"+score;
+        context.fillStyle = '#000'; // Black 
+        context.clearRect(0,0,width,height); 
+                if(context){ 
+            drawStars(context);           
+			drawDestroyed();
+			movefire();
+			drawfire();
+                context.fillStyle = '#fff'; // Black 
+					if(!playerdead){
+						if(imgdelay==10){
+							if(spaceimage>=15)
+								spaceimage=1;
+							else
+								spaceimage+=1;
+						}
+						if(imgdelay>10)
+							imgdelay=1;
+							
+						imgdelay+=1;
+						var playerimg=document.createElement('img');
+						playerimg.src="spaceship/"+spaceimage+".gif";
+						context.drawImage(playerimg,x-25,y-25,60,30);
+					}
+					else{
+						if(playerddelay==7){
+							if(playerdimg>=13){
+								return_start();
+							}
+							else
+								playerdimg+=1;
+						}
+						if(playerddelay>7)
+							playerddelay=1;
+						playerddelay+=1;
+						var playerimg=document.createElement('img');
+						playerimg.src="explode/fire/"+playerdimg+".gif";
+						context.drawImage(playerimg,x-25,y-25,71,100);
+					}
+                    //context.fillRect(x - 25,y -25,50,50); 
+			moveEvil();
+			drawEvil();
+                }         
+    
+    }   
+	function spawnEvil(){
+		if(evil.length>=maxenemy){
+			evil.splice(0,1);
+		}
+		var etype=Math.floor((Math.random()*8)+1);
+		var max=0;
+		var sizew=0;
+		var sizeh=0;
+		var imgdelay=0;
+		switch(etype){
+			case 1:
+				max=4;
+				imgdelay=10;
+				sizew=128;
+				sizeh=85;
+				break;
+			case 2:
+				max=21;
+				imgdelay=5;
+				sizew=76;
+				sizeh=76;
+				break;
+			case 3:
+				max=18;
+				imgdelay=5;
+				sizew=44;
+				sizeh=40;
+				break;
+			case 4:
+				max=8;
+				imgdelay=8;
+				sizew=73;
+				sizeh=72;
+				break;
+			case 5:
+				max=3;
+				imgdelay=11;
+				sizew=50;
+				sizeh=50;
+				break;
+			case 6:
+				max=25;
+				imgdelay=5;
+				sizew=77;
+				sizeh=75;
+				break;
+			case 7:
+				max=10;
+				imgdelay=7;
+				sizew=37;
+				sizeh=37;
+				break;
+			case 8:
+				max=15;
+				imgdelay=6;
+				sizew=65;
+				sizeh=66;
+				break;					
+		}
+		var ystart= Math.floor((Math.random()*height)+1);
+		var enew=[width-10,ystart,1,etype,sizew,sizeh,max,imgdelay,1];
+		evil.push(enew);
+		//console.log(evil);
+	}
+	function moveEvil(){
+		var toremoveevil=new Array();
+		var evilspeed=speed+1;
+		for(var i=0;i<evil.length;i++){
+			if(evil[i][0]<(-25)){
+				toremoveevil.push(i);
+				score+=5;
+			}
+			else{
+				evil[i][0]-=evilspeed;
+			}
+			var distancey=0;
+			if((y-25)>evil[i][1])
+				distancey=(y-25)-evil[i][1];
+			else
+				distancey=evil[i][1]-(y-25);
+			if(distancey>1)
+				distancey=1;
+			if((y-25)>evil[i][1])
+				evil[i][1]+=distancey;
+			else
+				evil[i][1]-=distancey;
+			
+			var distancex=10;
+			if(evil[i][1]>(y-25))
+				distancey=evil[i][1]-(y-25);
+			else
+				distancey=(y-25)-evil[i][1];
+			if(evil[i][0]>(x-25))
+				distancex=evil[i][0]-(x-25);
+			else
+				distancex=(x-25)-evil[i][0];
+			if(distancex<10&&distancey<5){
+				playerdead=true;
+				score+=1;
+			}
+		}
+		for(var i=0;i<toremoveevil.length;i++){
+			evil.splice(toremoveevil[i],1);
+		}
+		//console.log(evil);
+	}
+	function drawDestroyed(){
+		var toremove=new Array();
+		for(var i=0;i<destroyed.length;i++){
+			var max=24;
+			var path="explode/spark/";
+			var sizew=124;
+			var sizeh=127;
+			if(destroyed[i][2]>max)
+				toremove.push(i);
+			else{
+				if(destroyed[i][4]==destroyed[i][3]){
+					destroyed[i][2]+=1;
+				}
+				if(destroyed[i][4]>destroyed[i][3])
+					destroyed[i][4]=1;
+				destroyed[i][4]+=1;
+				var destroyimg=document.createElement('img');
+				destroyimg.src=path+destroyed[i][2]+".gif";
+				context.drawImage(destroyimg,destroyed[i][0],destroyed[i][1],sizew,sizeh);
+			}
+		}
+		for(var i=0;i<toremove.length;i++){
+			destroyed.splice(toremove[i],1);
+		}
+	}
+	function drawEvil(){
+		for(var i=0;i<evil.length;i++){
+				var max=evil[i][6]-1;
+				var path="enemy/"+evil[i][3]+"/";
+				var sizew=evil[i][4];
+				var sizeh=evil[i][5];
+				if(evil[i][8]==evil[i][7]){
+					if(evil[i][2]>max)
+						evil[i][2]=1;
+					else
+						evil[i][2]+=1;
+				}
+				if(evil[i][8]>evil[i][7])
+					evil[i][8]=1;
+				evil[i][8]+=1;
+				var enemyimg=document.createElement('img');
+				enemyimg.src=path+evil[i][2]+".gif";
+				context.drawImage(enemyimg,evil[i][0],evil[i][1],sizew,sizeh);
+		}
+	}
+	
+	function drawfire(){
+		for(var i=0;i<fire.length;i++){
+			try{
+				if(fire[i][4]==fire[i][3]){
+					if(fire[i][2]>11)
+						fire[i][2]=1;
+					else
+						fire[i][2]+=1;
+				}
+				if(fire[i][4]>fire[i][3])
+					fire[i][4]=1;
+				fire[i][4]+=1;
+				var fireimg=document.createElement('img');
+				fireimg.src="balls/"+fire[i][2]+".gif";
+				context.drawImage(fireimg,fire[i][0],fire[i][1],18,18);
+			}
+			catch(err){}
+		}
+	}
+	function movefire(){
+		var toremovefire= new Array();
+		var toremoveevil= new Array();
+		for(var i=0;i<fire.length;i++){
+			if(fire[i][0]>width)
+				toremovefire.push(i);
+			else{
+				fire[i][0]+=speed;
+				var continuef=true;
+				for(var ii=0;ii<evil.length;ii++){
+					var distancex=10;
+					var distancey=10;
+					if((evil[ii][0]+evil[ii][4])>fire[i][0])
+						distancex=(evil[ii][0]+evil[ii][4])-fire[i][0];
+					else
+						distancex=fire[i][0]-(evil[ii][0]+evil[ii][4]);
+					if((evil[ii][1])>fire[i][1])
+						distancey=(evil[ii][1])-fire[i][1];
+					else
+						distancey=fire[i][1]-(evil[ii][1]);
+					if(distancex<10&&distancey<5){
+						continuef=false;
+						toremoveevil.push(ii);
+						var newdestroyed=[evil[ii][0],evil[ii][1],1,5,1];
+						destroyed.push(newdestroyed);
+						score+=1;
+					}
+				}
+				if(!continuef)
+					toremovefire.push(i);
+			}
+		}
+		for(var i=0;i<toremovefire.length;i++){
+			fire.splice(toremovefire[i],1);
+		}
+		for(var i=0;i<toremoveevil.length;i++){
+			evil.splice(toremoveevil[i],1);
+		}
+	}
+
+    function keyDownEvent(evt) { 
+        var key = evt.keyCode != 0 ? evt.keyCode : evt.charCode; 
+        switch (key) { 
+            case 40: 
+                downPress = true; 
+                break; 
+            case 38: 
+                upPress = true; 
+                break; 
+            case 37: 
+                leftPress = true; 
+                break; 
+            case 39: 
+                rightPress = true; 
+                break; 
+			case 32:
+				if(fire.length>=maxfire){
+					fire.splice(0,1);
+				}
+				var nf=[x-25,y-25,1,10,1];
+				fire.push(nf);
+				break;
+			case 27:
+				return_start();
+				break;
+        } 
+    }
+
+    function keyUpEvent(evt) { 
+        var key = evt.keyCode != 0 ? evt.keyCode : evt.charCode; 
+    
+        switch (key) { 
+            case 40: 
+                downPress = false; 
+                break; 
+            case 38: 
+                upPress = false; 
+                break; 
+            case 37: 
+                leftPress = false; 
+                break; 
+            case 39: 
+                rightPress = false; 
+                break; 
+        } 
+    }
+
+
+    function Vector2D(x,y){ 
+        this.X = x, 
+        this.Y = y 
+    }
+
+    function Star(position, depth){ 
+        this.Position, 
+        this.Depth 
+    }
+
+    var starArray = [] 
+    var starCount = 300;
+
+    function InitStars(){ 
+        for (var i = 0; i < starCount; i++) { 
+                starArray[i] = new function () { 
+                    this.Position = new Vector2D(Math.random() * width,Math.random() * height), 
+                this.Depth = ((Math.random() * 79) + 20) / 100.0 
+                } 
+            }    
+    }
+
+    function drawStars(ctx) { 
+        for (var i = 0; i < starArray.length; i++) { 
+            ctx.fillStyle = '#fff'; // Black 
+            ctx.fillRect(starArray[i].Position.X, starArray[i].Position.Y, 1, 1);    
+        } 
+    }
+
+    function updateStars(){ 
+        var warp = 0.25; 
+        for (var i = 0; i < starArray.length; i++) {        
+            var dp = deltaTime * -starArray[i].Depth * warp; 
+                starArray[i].Position.X += dp; 
+                if (starArray[i].Position.X < 0) starArray[i].Position.X = width; 
+        } 
+        
+    }
+
+
+    </script>   
+</head> 
+<body style="background-image: url('img/wp_2560.jpg');-webkit-background-size: cover;-moz-background-size: cover;-o-background-size: cover;background-size: cover;"> 
+    <div class="canvasClass"> 
+		<!--<img id="startimg" src="img/start load.gif" width="1280" height="500" style="display:block;"/>-->
+        <canvas id="myCanvas" width="1280" height="500" style="z-index:5;border:1px solid white;"> <!--style="display:none;"> -->
+        This game was written for HTML 5 Compliant browsers 
+		</canvas> 
+		<div>
+		<input id="leave" value="EXIT" type="button" style="display:none;float:left" onclick="return_start()"/>
+		<div id="score" style="float:right;">Score:--</div>
+		</div>
+		<div id="menu" style="display:none;position:absolute;z-index:1;top:10%;left:35%;background-image:url('img/menuback.png');border: 3px solid white;width:400px;height:400px;opacity:0.5;">
+			<center>
+			<input id="game1" value="GAME 1" type="button" onclick="start()" style="height:80px;width:80px"/>
+			<input id="game2" value="GAME 2" type="button" onclick="start()" style="height:80px;width:80px"/>
+			<input id="game3" value="GAME 3" type="button" onclick="start()" style="height:80px;width:80px"/>
+			<input id="leave2" value="EXIT" type="button" onclick="restart()" style="height:80px;width:80px"/>
+			</center>
+		</div>
+    </div> 
+			
+</body> 
+</html>
